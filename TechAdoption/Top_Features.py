@@ -2,16 +2,31 @@
 
 	Code to identify most relevant factors in predicting adoption using decision trees
 '''
-
-from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.tree import export_graphviz
 from sklearn.metrics import r2_score
+from tkinter import filedialog, Tk
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import pydot
 import csv
+'''
+import sys
+import argparse
+
+# construct the argument parse and parse the arguments
+parser = argparse.ArgumentParser(
+    description='This is a simple command-line program.'
+    )
+parser.add_argument('-n', '--name', required=True,
+                    help='name of the user'
+                    )
+args = parser.parse_args(sys.argv[1:])
+
+# display a friendly message to the user
+print("Hi there {}, it's nice to meet you!".format(args.name))'''
 
 #class features(self):
 #	def _init_(self):
@@ -19,6 +34,11 @@ import csv
 
 def format_dataset(data):		
 	''' Loads dataset, converts categorical data into numerical data, and splits into predictors and output'''
+	''' STILL NEED TO UPDATE WITH QUALTRICS CSV FILE FORMATTING '''
+	#root = Tk()
+	#root.filename = filedialog.askopenfilename(initialdir="C:\Documents", title="Select File",  filetype=(("csv", "*.csv"), ("all files, "*.*")) #if you want to select multiple files at once change it to askopenfilenames
+	#x=funtionname(root.filename)
+	
 	df = pd.read_csv(data) 
 	features = pd.DataFrame()
 	for name in list(df):
@@ -27,6 +47,9 @@ def format_dataset(data):
 	features= features.drop('actual', axis = 1)
 	feature_list = list(features.columns)
 	features = np.array(features)
+	print('FEATURES = ', features)
+	print('LABELS = ', labels)
+	print('FEATURE_LIST = ',feature_list)
 	return features, labels, feature_list
 
 def split_train_test(features, labels, testsize, randomstate):	
@@ -80,11 +103,14 @@ def plot_top_features(importances, feature_list):
 	x_values = list(range(len(importances)))
 	# Make a bar chart
 	plt.figure(figsize = (20,15), dpi = 100)
-	plt.barh(x_values, importances, align = 'center', alpha = 0.8, color='orchid')
+	# sort importances
+	importances_sorted, feature_list_sorted = (list(t) for t in zip(*sorted(zip(importances, feature_list))))
+	# plot
+	plt.barh(x_values, importances_sorted, align = 'center', alpha = 0.8, color='orchid')
 	# Tick labels for x axis
-	plt.yticks(x_values, feature_list, fontsize = '33')
+	plt.yticks(x_values, feature_list_sorted, fontsize = '33'); plt.xticks(fontsize = '30')
 	# Axis labels and title
-	plt.xlabel('Importance'); plt.ylabel('Variable'); plt.title('Variable Importances', fontsize = '35');
+	plt.xlabel('Importance', fontsize = '33'); plt.ylabel('Variable'); plt.title('Variable Importances', fontsize = '35');
 	plt.show()
 	#plt.savefig('Variable_Importances.png', bbox_inches='tight', dpi = 500)
 
@@ -93,6 +119,7 @@ def plot_predicted_actual(test_labels, predictions, rsquared):
 	plt.figure(dpi = 100)
 	plt.plot(test_labels, predictions, 'k*')
 	plt.plot([min(test_labels), max(test_labels)],[min(test_labels), max(test_labels)],'r-')
+	plt.xticks(fontsize = 15); plt.yticks(fontsize = 15)
 	plt.title('Cooking Methods', fontsize = 25); plt.xlabel('Actual Values', fontsize = 20); plt.ylabel('Predicted Values', fontsize = 20)
 	plt.text(2,1, '$R^2$ ='+str(round(rsquared,3)), fontsize = 20) 
 	plt.show()
@@ -102,18 +129,17 @@ def plot_tree(rf, feature_list):
 	''' Visualize one tree '''		
 	# Pull out one tree from the forest
 	tree = rf.estimators_[5]
-	# Pull out one tree from the forest
-	tree = rf.estimators_[5]
 	# Export the image to a dot file
 	export_graphviz(tree, out_file = 'tree.dot', feature_names = feature_list, rounded = True, precision = 1)
 	# Use dot file to create a graph
-	(graph ) = pydot.graph_from_dot_file('tree.dot')
+	(graph, ) = pydot.graph_from_dot_file('tree.dot')
 	# Write graph to a png file
 	graph.write_png('tree.png')
 
 def main():
 	testsize = 0.25;	randomstate = 42;	trees = 1000;	maxfeatures = float(1/3)
-	filename = r'G:\My Drive\Classes\ME 599 - Software Development\TechAdoption\TechAdoption\Dummy_data.csv'
+	filename = r'G:\My Drive\Classes\ME 599 - Software Development\TechAdoption\TechAdoption\Test\Test_Data.csv'
+	#filename = r'G:\My Drive\Classes\ME 599 - Software Development\TechAdoption\TechAdoption\Dummy_data.csv'
 	features, labels, feature_list = format_dataset(filename)
 	train_features, train_labels, test_features, test_labels = split_train_test(features, labels, testsize, randomstate)
 	rf = create_random_forest(trees, randomstate, maxfeatures, train_features, train_labels)
@@ -122,7 +148,7 @@ def main():
 	importances = list_top_features(rf, feature_list)
 	plot_top_features(importances, feature_list)
 	plot_predicted_actual(test_labels, predictions, rsquared)
-	#plot_tree(rf, feature_list)
+	plot_tree(rf, feature_list)
 
 if __name__ == "__main__":
 	main()
