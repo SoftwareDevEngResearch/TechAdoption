@@ -28,8 +28,50 @@ args = parser.parse_args(sys.argv[1:])
 # display a friendly message to the user
 print("Hi there {}, it's nice to meet you!".format(args.name))'''
 
-#class features(self):
-#	def _init_(self):
+def format_magpi(file,num_devices,num_questions):
+# use argparse to have someone insert question names for each question number
+	df = pd.read_csv(file)
+	cols_to_drop = ['Created By','Last Submitter','Record Uuid','Start Record Date','End Record Date','Last Submission Date',
+	'gps_stamp_latitude','gps_stamp_longitude','gps_stamp_accuracy']
+	df = df.drop(cols_to_drop,axis=1) #drop columns not containing survey data
+	num_devices = 8
+	# delete information before '.' e.g. cooking_devices.microwave --> microwave
+	l = df.columns.tolist()
+	devices = []
+	# get list of devices
+	for col in range(num_devices):
+		text = l[col]
+		head, sep, tail = text.partition('.')
+		devices.append(tail)
+	# get list of questions
+	questions = []
+	for col in range(num_devices,num_devices+num_questions):
+		text = l[col]
+		head, sep, tail = text.partition('.')
+		questions.append(tail)
+	df_new = pd.DataFrame()
+	df_new['Devices'] = devices # row names
+	for q in questions: # column names
+		df_new[q] = ''
+	for col in range(num_devices):
+		for dev in devices:
+		text = l[col]
+		head,sep,tail = text.partition('.')
+		if tail == dev:
+			
+		
+	'''for col in l:
+		head,sep,tail = text.partition('.')
+		for device in devices:
+			if tail == device'''
+			
+		
+	
+filename1 = r"G:\My Drive\Classes\ME 599 - Software Development\TechAdoption\TechAdoption\Magpi_Dummy_data.csv"
+format_magpi(filename1, 8,12)
+
+#def format_qualtrics(file):
+	# pull from qualtrics? use argparse to locate user information? 
 	
 
 def format_dataset(data):		
@@ -55,25 +97,19 @@ def create_random_forest(trees, randomstate, maxfeatures, train_features, train_
 	''' Random Forest '''
 	# Instantiate model with 1000 decision trees, randomstate = 42, jobs = 2, maxfeatures = float(1/3)
 	rf = RandomForestRegressor(n_estimators = trees, random_state = randomstate, max_features = maxfeatures)
-	# Train the model on training data
 	rf.fit(train_features, train_labels)
 	return rf
 
 def predict_test_data(rf, test_features):
 	''' Predict '''
-	# Use the forest's predict method on the test data
 	predictions = rf.predict(test_features)
 	return predictions
 	
 def evaluate_fit(predictions, test_labels):
 	''' Evaluate fit '''
-	# Calculate the absolute errors
 	errors = abs(predictions - test_labels)
-	# Print out the mean absolute error (mae)
 	print('Mean Absolute Error:', round(np.mean(errors), 2), 'degrees.')
-	# Calculate mean absolute percentage error (MAPE)
 	mape = 100 * (errors / test_labels)
-	# Calculate and display accuracy
 	accuracy = 100 - np.mean(mape)
 	print('Accuracy:', round(accuracy, 2), '%.')
 	rsquared = r2_score(test_labels, predictions)
@@ -81,29 +117,19 @@ def evaluate_fit(predictions, test_labels):
 	
 def list_top_features(rf, feature_list):	
 	''' List of Top Features '''
-	# Get numerical feature importances
 	importances = list(rf.feature_importances_)
-	# List of tuples with variable and importance
 	feature_importances = [(feature, round(importance, 2)) for feature, importance in zip(feature_list, importances)]
-	# Sort the feature importances by most important first
 	feature_importances = sorted(feature_importances, key = lambda x: x[1], reverse = True)
-	# Print out the feature and importances 
 	[print('Variable: {:20} Importance: {}'.format(*pair)) for pair in feature_importances]
 	return importances
 
 def plot_top_features(importances, feature_list):
 	''' Plot Top Features '''
-	# list of x locations for plotting
 	x_values = list(range(len(importances)))
-	# Make a bar chart
 	plt.figure(figsize = (20,15), dpi = 100)
-	# sort importances
 	importances_sorted, feature_list_sorted = (list(t) for t in zip(*sorted(zip(importances, feature_list))))
-	# plot
 	plt.barh(x_values, importances_sorted, align = 'center', alpha = 0.8, color='orchid')
-	# Tick labels for x axis
 	plt.yticks(x_values, feature_list_sorted, fontsize = '33'); plt.xticks(fontsize = '30')
-	# Axis labels and title
 	plt.xlabel('Importance', fontsize = '33'); plt.ylabel('Variable'); plt.title('Variable Importances', fontsize = '35');
 	plt.show()
 	#plt.savefig('Variable_Importances.png', bbox_inches='tight', dpi = 500)
@@ -123,20 +149,15 @@ def plot_tree(rf, feature_list):
 	''' Visualize one tree '''		
 	# Pull out one tree from the forest
 	tree = rf.estimators_[5]
-	# Export the image to a dot file
 	export_graphviz(tree, out_file = 'tree.dot', feature_names = feature_list, rounded = True, precision = 1)
-	# Use dot file to create a graph
 	(graph, ) = pydot.graph_from_dot_file('tree.dot')
-	# Write graph to a png file
 	graph.write_png('tree.png')
-
+'''
 def main():
 	testsize = 0.25;	randomstate = 42;	trees = 1000;	maxfeatures = float(1/3);  x_loc = 2; y_loc = 1
 	root = Tk()
 	root.filename = filedialog.askopenfilename(initialdir="C:\Documents", title="Select File",  filetype=(("csv", "*.csv"),("all files","*.*")))
 	filename = root.filename
-	#filename = r'G:\My Drive\Classes\ME 599 - Software Development\TechAdoption\TechAdoption\Test\Test_Data.csv'
-	#filename = r'G:\My Drive\Classes\ME 599 - Software Development\TechAdoption\TechAdoption\Dummy_data.csv'
 	features, labels, feature_list = format_dataset(filename)
 	train_features, train_labels, test_features, test_labels = split_train_test(features, labels, testsize, randomstate)
 	rf = create_random_forest(trees, randomstate, maxfeatures, train_features, train_labels)
@@ -149,3 +170,4 @@ def main():
 
 if __name__ == "__main__":
 	main()
+'''
