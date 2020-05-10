@@ -29,46 +29,51 @@ args = parser.parse_args(sys.argv[1:])
 print("Hi there {}, it's nice to meet you!".format(args.name))'''
 
 def format_magpi(file,num_devices,num_questions):
-# use argparse to have someone insert question names for each question number
+	''' Format Magpi dataset to input into RFR '''
+	# TO DO: use argparse to have someone insert question names for each question number
 	df = pd.read_csv(file)
 	cols_to_drop = ['Created By','Last Submitter','Record Uuid','Start Record Date','End Record Date','Last Submission Date',
 	'gps_stamp_latitude','gps_stamp_longitude','gps_stamp_accuracy']
-	df = df.drop(cols_to_drop,axis=1) #drop columns not containing survey data
-	num_devices = 8
-	# delete information before '.' e.g. cooking_devices.microwave --> microwave
+	df = df.drop(cols_to_drop,axis=1) # drop columns not containing survey data
+
 	l = df.columns.tolist()
 	devices = []
 	# get list of devices
 	for col in range(num_devices):
 		text = l[col]
-		head, sep, tail = text.partition('.')
+		head, sep, tail = text.partition('.') 	# delete information before '.' e.g. cooking_devices.microwave --> microwave
 		devices.append(tail)
+		
 	# get list of questions
-	questions = []
+	questions_list = []
 	for col in range(num_devices,num_devices+num_questions):
 		text = l[col]
 		head, sep, tail = text.partition('.')
-		questions.append(tail)
+		questions_list.append(tail)
+		
+	# get one long list of relevant yes/no answers
 	df_new = pd.DataFrame()
-	df_new['Devices'] = devices # row names
-	for q in questions: # column names
-		df_new[q] = ''
-	for col in range(num_devices):
-		for dev in devices:
-		text = l[col]
-		head,sep,tail = text.partition('.')
-		if tail == dev:
-			
-		
-	'''for col in l:
-		head,sep,tail = text.partition('.')
-		for device in devices:
-			if tail == device'''
-			
-		
+	dev_list = []	
+	q_list = []
+	df_devices = df.iloc[:,0:num_devices] # dataframe with just cooking_devices and yes/no
+	for row in range(14):
+		for col in range(num_devices):
+			if df_devices.iloc[row, col] == 'Yes':
+				dev_list.append(devices[col])
+				for col1 in range((num_devices+(col*num_questions)),(num_devices+(col*num_questions)+num_questions)):
+						q_list.append(df.iloc[row,col1]) # one long list of all questions (yes/no) for each device
 	
-filename1 = r"G:\My Drive\Classes\ME 599 - Software Development\TechAdoption\TechAdoption\Magpi_Dummy_data.csv"
-format_magpi(filename1, 8,12)
+	# add device and question data to new dataframe
+	df_new['Devices'] = dev_list	
+	for q in questions_list:
+		df_new[q] = ''
+	for row in range(len(dev_list)):
+		for col in range(1,len(questions_list)+1):
+			df_new.iloc[row,col] = q_list[col-1+(row*12)]
+	return df_new
+
+	#df_new.to_csv('input_file.csv', index = False)
+	
 
 #def format_qualtrics(file):
 	# pull from qualtrics? use argparse to locate user information? 
@@ -78,12 +83,11 @@ def format_dataset(data):
 	''' Loads dataset, converts categorical data into numerical data, and splits into predictors and output'''
 	''' STILL NEED TO UPDATE WITH QUALTRICS CSV FILE FORMATTING '''
 	
-	df = pd.read_csv(data) 
-	features = pd.DataFrame()
+	df = data
 	for name in list(df):
 		features[name],name = pd.factorize(df[name]) 	# Converts categorical data into numerical data
-	labels = np.array(features['actual'])	# Labels = y, features = x
-	features= features.drop('actual', axis = 1)
+	labels = np.array(features['Devices'])	# Labels = y, features = x
+	features= features.drop('Devices', axis = 1)
 	feature_list = list(features.columns)
 	features = np.array(features)
 	return features, labels, feature_list
@@ -154,11 +158,13 @@ def plot_tree(rf, feature_list):
 	graph.write_png('tree.png')
 '''
 def main():
+	num_devices = 8; num_questions = 12;
 	testsize = 0.25;	randomstate = 42;	trees = 1000;	maxfeatures = float(1/3);  x_loc = 2; y_loc = 1
 	root = Tk()
 	root.filename = filedialog.askopenfilename(initialdir="C:\Documents", title="Select File",  filetype=(("csv", "*.csv"),("all files","*.*")))
 	filename = root.filename
-	features, labels, feature_list = format_dataset(filename)
+	df_new = format_magpi(filename,num_devices,num_questions)
+	features, labels, feature_list = format_dataset(df_new)
 	train_features, train_labels, test_features, test_labels = split_train_test(features, labels, testsize, randomstate)
 	rf = create_random_forest(trees, randomstate, maxfeatures, train_features, train_labels)
 	predictions = predict_test_data(rf, test_features)
