@@ -16,10 +16,10 @@ import numpy as np
 import pydot
 import csv
 
-''' include uncertainty parameters for each factor '''
+''' TO ADD: include uncertainty parameters for each factor '''
 
 def main():
-	''' Build RFR Inputs '''
+	""" Build RFR Inputs """
 	testsize = 0.25;	randomstate = 42;	trees = 1000;	maxfeatures = float(1/3)
 	root = Tk()
 	root.filename = filedialog.askopenfilename(initialdir="C:\Documents", title="Select File",  filetype=(("csv", "*.csv"),("all files","*.*")))
@@ -28,7 +28,7 @@ def main():
 	train_features_build, train_labels_build, test_features_build, test_labels_build = split_train_test(features_build, labels_build, testsize, randomstate)
 	rf = create_random_forest(trees, randomstate, maxfeatures, train_features_build, train_labels_build)
 
-	''' Test RFR Inputs '''
+	""" Test RFR Inputs """
 	x_loc = 2; y_loc = 1
 	root = Tk()
 	root.filename = filedialog.askopenfilename(initialdir="C:\Documents", title="Select File",  filetype=(("csv", "*.csv"),("all files","*.*")))
