@@ -32,7 +32,8 @@ args = parser.parse_args(sys.argv[1:])
 print("Hi there {}, it's nice to meet you!".format(args.name))'''
 
 def format_magpi(file,num_devices,num_questions):
-	""" Format Magpi dataset to input into RFR """	
+	""" Formats Magpi dataset to input into RFR 
+	"""	
 	# TO DO: use argparse to have someone insert question names for each question number
 	# TO DO: modify code so it allows for people to answer "no, I don't have 'improved' device" and reasons why
 	
@@ -79,7 +80,8 @@ def format_magpi(file,num_devices,num_questions):
 	
 
 def format_qualtrics(file, respondents):
-	""" Format Qualtrics dataset to input into RFR """
+	""" Formats Qualtrics dataset to input into RFR 
+	"""
 	# TO DO: use argparse to have someone insert question names for each question number
 	# TO DO: modify code so it allows for people to answer "no, I don't have 'improved' device" and reasons why
 	
@@ -106,7 +108,8 @@ num_respondents = 10
 format_qualtrics(input_file, num_respondents)
 	
 def format_dataset(data):		
-	""" Loads dataset, converts categorical data into numerical data, and splits into predictors and output """
+	""" Loads dataset, converts categorical data into numerical data, and splits into predictors and output 
+	"""
 	df = data
 	for name in list(df):
 		features[name],name = pd.factorize(df[name]) 	# Converts categorical data into numerical data
@@ -117,24 +120,29 @@ def format_dataset(data):
 	return features, labels, feature_list
 
 def split_train_test(features, labels, testsize, randomstate):	
-	""" Splits data into train and test sets. Test size can be altered. """
+	""" Splits data into train and test sets. Test size can be altered as an input. 
+	"""
 	train_features, test_features, train_labels, test_labels = train_test_split(features, labels, test_size = testsize, random_state = randomstate)
 	return train_features, train_labels, test_features, test_labels
 
 def create_random_forest(trees, randomstate, maxfeatures, train_features, train_labels):
-	""" Random Forest """
+	""" Creates Random Forest Regression
+	"""
 	# Instantiate model with 1000 decision trees, randomstate = 42, jobs = 2, maxfeatures = float(1/3)
 	rf = RandomForestRegressor(n_estimators = trees, random_state = randomstate, max_features = maxfeatures)
 	rf.fit(train_features, train_labels)
 	return rf
 
 def predict_test_data(rf, test_features):
-	""" Predict """
+	""" Predicts outcomes from test data 
+	"""
 	predictions = rf.predict(test_features)
 	return predictions
 	
 def evaluate_fit(predictions, test_labels):
-	""" Evaluate fit """
+	""" Evaluates how predicted outcomes and actual outcomes compare with
+	error (predicted-actual), accuracy, and r-squared values
+	"""
 	errors = abs(predictions - test_labels)
 	print('Mean Absolute Error:', round(np.mean(errors), 2), 'degrees.')
 	mape = 100 * (errors / test_labels)
@@ -144,7 +152,8 @@ def evaluate_fit(predictions, test_labels):
 	return errors, accuracy, rsquared
 	
 def list_top_features(rf, feature_list):	
-	""" List of Top Features """
+	""" Generates and prints list of top features influencing tech adoption
+	"""
 	importances = list(rf.feature_importances_)
 	feature_importances = [(feature, round(importance, 2)) for feature, importance in zip(feature_list, importances)]
 	feature_importances = sorted(feature_importances, key = lambda x: x[1], reverse = True)
@@ -152,7 +161,8 @@ def list_top_features(rf, feature_list):
 	return importances
 
 def plot_top_features(importances, feature_list):
-	""" Plot Top Features """
+	""" Plots Top Features in horizontal bar chart
+	"""
 	x_values = list(range(len(importances)))
 	plt.figure(figsize = (20,15), dpi = 100)
 	importances_sorted, feature_list_sorted = (list(t) for t in zip(*sorted(zip(importances, feature_list))))
@@ -163,7 +173,8 @@ def plot_top_features(importances, feature_list):
 	plt.savefig('Variable_Importances.png', bbox_inches='tight', dpi = 500)
 
 def plot_predicted_actual(test_labels, predictions, rsquared, x_loc, y_loc):
-	""" Plots predicted versus actual """
+	""" Plots predicted versus actual with rsquared and fitted line
+	"""
 	plt.figure(dpi = 100)
 	plt.plot(test_labels, predictions, 'k*')
 	plt.plot([min(test_labels), max(test_labels)],[min(test_labels), max(test_labels)],'r-')
@@ -174,7 +185,8 @@ def plot_predicted_actual(test_labels, predictions, rsquared, x_loc, y_loc):
 	plt.savefig('Predicted_Actual.png', bbox_inches='tight', dpi = 500)
 	
 def plot_tree(rf, feature_list):
-	""" Visualize one tree """	
+	""" Visualize one decision tree 
+	"""	
 	# Pull out one tree from the forest
 	tree = rf.estimators_[5]
 	export_graphviz(tree, out_file = 'tree.dot', feature_names = feature_list, rounded = True, precision = 1)
