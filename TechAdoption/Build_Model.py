@@ -1,7 +1,7 @@
-''' Erin Peiffer, 16 April 2020
+""" Created by: Erin Peiffer, 12 May 2020
 
 	Code to identify most relevant factors in predicting adoption using decision trees
-'''
+"""
 
 # TO DO: argparse or tkinker to allow user to insert number of devices/questions/participants
 # TO DO: modify code to allow 
@@ -9,27 +9,16 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.tree import export_graphviz
 from sklearn.metrics import r2_score
-from tkinter import filedialog, Tk
 import matplotlib.pyplot as plt
+import tkinter as tk
+from tkinter import filedialog
 import pandas as pd
 import numpy as np
+import argparse
 import pydot
 import csv
-'''
 import sys
-import argparse
 
-# construct the argument parse and parse the arguments
-parser = argparse.ArgumentParser(
-    description='This is a simple command-line program.'
-    )
-parser.add_argument('-i', '--input', required=True,
-                    help='input file for data analysis'
-                    )
-args = parser.parse_args(sys.argv[1:])
-
-# display a friendly message to the user
-print("Hi there {}, it's nice to meet you!".format(args.name))'''
 
 def format_magpi(file,num_devices,num_questions):
 	""" Formats Magpi dataset to input into RFR 
@@ -79,13 +68,13 @@ def format_magpi(file,num_devices,num_questions):
 	return df_new
 	
 
-def format_qualtrics(file, respondents):
+#def format_qualtrics(file, respondents):
 	""" Formats Qualtrics dataset to input into RFR 
 	"""
 	# TO DO: use argparse to have someone insert question names for each question number
 	# TO DO: modify code so it allows for people to answer "no, I don't have 'improved' device" and reasons why
 	
-	df = pd.read_csv(file)
+	'''df = pd.read_csv(file)
 	cols_to_drop = ['StartDate','EndDate','Status','Progress','Duration (in seconds)','Finished',
 	'RecordedDate','ResponseId','DistributionChannel','UserLanguage','Q1']
 	df = df.drop(cols_to_drop, axis=1) # drop columns not containing survey data
@@ -105,14 +94,16 @@ def format_qualtrics(file, respondents):
 
 input_file = r"G:\My Drive\Classes\ME 599 - Software Development\TechAdoption\TechAdoption\Qualtrics_Dummy_data.csv"
 num_respondents = 10
-format_qualtrics(input_file, num_respondents)
+format_qualtrics(input_file, num_respondents)'''
 	
 def format_dataset(data):		
 	""" Loads dataset, converts categorical data into numerical data, and splits into predictors and output 
 	"""
 	df = data
+	features = pd.DataFrame()
 	for name in list(df):
 		features[name],name = pd.factorize(df[name]) 	# Converts categorical data into numerical data
+	features += 1	# helps with math later so that accuracy calculation doesn't require dividing by 0
 	labels = np.array(features['Devices'])	# Labels = y, features = x
 	features= features.drop('Devices', axis = 1)
 	feature_list = list(features.columns)
@@ -128,7 +119,7 @@ def split_train_test(features, labels, testsize, randomstate):
 def create_random_forest(trees, randomstate, maxfeatures, train_features, train_labels):
 	""" Creates Random Forest Regression
 	"""
-	# Instantiate model with 1000 decision trees, randomstate = 42, jobs = 2, maxfeatures = float(1/3)
+	# Instantiate model with (default) 1000 decision trees, randomstate = 42, jobs = 2, maxfeatures = float(1/3)
 	rf = RandomForestRegressor(n_estimators = trees, random_state = randomstate, max_features = maxfeatures)
 	rf.fit(train_features, train_labels)
 	return rf
@@ -145,6 +136,7 @@ def evaluate_fit(predictions, test_labels):
 	"""
 	errors = abs(predictions - test_labels)
 	print('Mean Absolute Error:', round(np.mean(errors), 2), 'degrees.')
+	print('TEST LABELS = ', test_labels)
 	mape = 100 * (errors / test_labels)
 	accuracy = 100 - np.mean(mape)
 	print('Accuracy:', round(accuracy, 2), '%.')
@@ -160,19 +152,18 @@ def list_top_features(rf, feature_list):
 	[print('Variable: {:20} Importance: {}'.format(*pair)) for pair in feature_importances]
 	return importances
 
-def plot_top_features(importances, feature_list):
+def plot_top_features(importances, feature_list,c):
 	""" Plots Top Features in horizontal bar chart
 	"""
 	x_values = list(range(len(importances)))
 	plt.figure(figsize = (20,15), dpi = 100)
 	importances_sorted, feature_list_sorted = (list(t) for t in zip(*sorted(zip(importances, feature_list))))
-	plt.barh(x_values, importances_sorted, align = 'center', alpha = 0.8, color='orchid')
+	plt.barh(x_values, importances_sorted, align = 'center', alpha = 0.8, color=c)
 	plt.yticks(x_values, feature_list_sorted, fontsize = '33'); plt.xticks(fontsize = '30')
-	plt.xlabel('Importance', fontsize = '33'); plt.ylabel('Variable'); plt.title('Variable Importances', fontsize = '35');
-	#plt.show()
-	plt.savefig('Variable_Importances.png', bbox_inches='tight', dpi = 500)
+	plt.xlabel('Importance', fontsize = '33'); plt.title('Variable Importances', fontsize = '35');
+	plt.savefig('Plot_Variable_Importances.png', bbox_inches='tight', dpi = 500)
 
-def plot_predicted_actual(test_labels, predictions, rsquared, x_loc, y_loc):
+def plot_predicted_actual(test_labels, predictions, rsquared):
 	""" Plots predicted versus actual with rsquared and fitted line
 	"""
 	plt.figure(dpi = 100)
@@ -180,36 +171,53 @@ def plot_predicted_actual(test_labels, predictions, rsquared, x_loc, y_loc):
 	plt.plot([min(test_labels), max(test_labels)],[min(test_labels), max(test_labels)],'r-')
 	plt.xticks(fontsize = 15); plt.yticks(fontsize = 15)
 	plt.title('Cooking Methods', fontsize = 25); plt.xlabel('Actual Values', fontsize = 20); plt.ylabel('Predicted Values', fontsize = 20)
+	x_loc = (max(test_labels) - 1)*0.75
+	y_loc = (min(predictions)+1)*0.75
 	plt.text(x_loc,y_loc, '$R^2$ ='+str(round(rsquared,3)), fontsize = 20) 
-	#plt.show()
-	plt.savefig('Predicted_Actual.png', bbox_inches='tight', dpi = 500)
+	plt.savefig('Plot_Predicted_Actual.png', bbox_inches='tight', dpi = 500)
 	
 def plot_tree(rf, feature_list):
 	""" Visualize one decision tree 
 	"""	
-	# Pull out one tree from the forest
+	# Pull out one tree from the forest. Tree #5 randomly chosen
 	tree = rf.estimators_[5]
 	export_graphviz(tree, out_file = 'tree.dot', feature_names = feature_list, rounded = True, precision = 1)
 	(graph, ) = pydot.graph_from_dot_file('tree.dot')
-	graph.write_png('tree.png')
-'''
+	graph.write_png('Plot_tree.png')
+
 def main():
-	num_devices = 8; num_questions = 12;
-	testsize = 0.25;	randomstate = 42;	trees = 1000;	maxfeatures = float(1/3);  x_loc = 2; y_loc = 1
-	root = Tk()
-	root.filename = filedialog.askopenfilename(initialdir="C:\Documents", title="Select File",  filetype=(("csv", "*.csv"),("all files","*.*")))
+
+	# constants 
+	maxfeatures = float(1/3);
+	
+	# user inputs
+	parser = argparse.ArgumentParser() 
+	parser.add_argument('-nd', action='store', dest='num_devices', nargs='*', type=int, required=True, help='number of devices included in dataset')
+	parser.add_argument('-nq', action='store', dest='num_questions', nargs='*', type=int, required=True, help='number of questions per device in dataset')
+	parser.add_argument('-ts', action='store', dest='testsize', nargs='*', type=int, default=0.25, 
+	help='proportion of the dataset used to train (build) the model, and proportion to test model? Default = 0.25 test, 0.75 train')
+	parser.add_argument('-t', action='store', dest='trees', nargs='*', type=int, default=1000, help='number of trees in random forest regression. Default = 1000')
+	parser.add_argument('-rs', action='store', dest='randomstate', nargs='*', type=int, default=42, help='random state. Default = 42')
+	parser.add_argument('-c', action='store', dest='color', nargs='*', type=str, default='orchid', help='choose bar colors. Default = orchid. Documentation: https://matplotlib.org/2.0.2/api/colors_api.html')
+	args = parser.parse_args()
+	
+	# input file
+	root = tk.Tk()
+	root.filename = tk.filedialog.askopenfilename(initialdir="C:\Documents", title="Select File",  filetype=(("csv", "*.csv"),("all files","*.*")))
 	filename = root.filename
-	df_new = format_magpi(filename,num_devices,num_questions)
+	root.destroy()
+	
+	# call functions
+	df_new = format_magpi(filename,args.num_devices[0],args.num_questions[0])
 	features, labels, feature_list = format_dataset(df_new)
-	train_features, train_labels, test_features, test_labels = split_train_test(features, labels, testsize, randomstate)
-	rf = create_random_forest(trees, randomstate, maxfeatures, train_features, train_labels)
+	train_features, train_labels, test_features, test_labels = split_train_test(features, labels, args.testsize, args.randomstate)
+	rf = create_random_forest(args.trees, args.randomstate, maxfeatures, train_features, train_labels)
 	predictions = predict_test_data(rf, test_features)
 	errors, accuracy, rsquared = evaluate_fit(predictions, test_labels)
 	importances = list_top_features(rf, feature_list)
-	plot_top_features(importances, feature_list)
-	plot_predicted_actual(test_labels, predictions, rsquared,x_loc, y_loc)
+	plot_top_features(importances, feature_list,args.color)
+	plot_predicted_actual(test_labels, predictions, rsquared)
 	plot_tree(rf, feature_list)
 
 if __name__ == "__main__":
 	main()
-'''
