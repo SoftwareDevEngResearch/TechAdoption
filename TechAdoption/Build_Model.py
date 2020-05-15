@@ -2,30 +2,38 @@
 
 	Code to identify most relevant factors in predicting adoption using decision trees
 """
-
-# TO DO: argparse or tkinker to allow user to insert number of devices/questions/participants
-# TO DO: modify code to allow 
+# TO DO: modify code so it allows for people to answer "no, I don't have 'improved' device" and reasons why
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.tree import export_graphviz
 from sklearn.metrics import r2_score
 import matplotlib.pyplot as plt
-import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog, Tk
 import pandas as pd
 import numpy as np
 import argparse
 import pydot
 import csv
-import sys
 
 
 def format_magpi(file,num_devices,num_questions):
 	""" Formats Magpi dataset to input into RFR 
-	"""	
-	# TO DO: use argparse to have someone insert question names for each question number
-	# TO DO: modify code so it allows for people to answer "no, I don't have 'improved' device" and reasons why
 	
+	Parameters
+    ----------
+    file : csv
+        Magpi data file to build model
+    num_devices : int
+        Number of devices included in dataset
+	num_questions : int
+		Number of questions asked for each device (should be the same for each device)
+
+    Returns
+    -------
+    dataframe
+        Formatted to have the first column list all of the devices used and their corresponding yes/no answer to each question
+		
+	"""		
 	df = pd.read_csv(file)
 	cols_to_drop = ['Created By','Last Submitter','Record Uuid','Start Record Date','End Record Date','Last Submission Date',
 	'gps_stamp_latitude','gps_stamp_longitude','gps_stamp_accuracy']
@@ -71,8 +79,6 @@ def format_magpi(file,num_devices,num_questions):
 #def format_qualtrics(file, respondents):
 	""" Formats Qualtrics dataset to input into RFR 
 	"""
-	# TO DO: use argparse to have someone insert question names for each question number
-	# TO DO: modify code so it allows for people to answer "no, I don't have 'improved' device" and reasons why
 	
 	'''df = pd.read_csv(file)
 	cols_to_drop = ['StartDate','EndDate','Status','Progress','Duration (in seconds)','Finished',
@@ -98,6 +104,21 @@ format_qualtrics(input_file, num_respondents)'''
 	
 def format_dataset(data):		
 	""" Loads dataset, converts categorical data into numerical data, and splits into predictors and output 
+	
+	Parameters
+    ----------
+    data : dataframe
+        Formatted dataframe returned from format_magpi function
+
+    Returns
+    -------
+    features : array
+        Array of all the "x variables" (questions and responses to the questions)
+	labels : array
+		Array of all the "y variables" (devices)
+	feature_list : list
+		List with all the column names
+		
 	"""
 	df = data
 	features = pd.DataFrame()
@@ -112,12 +133,57 @@ def format_dataset(data):
 
 def split_train_test(features, labels, testsize, randomstate):	
 	""" Splits data into train and test sets. Test size can be altered as an input. 
+	
+	Parameters
+    ----------
+    features : array
+        Array of all the "x variables" (questions and responses to the questions), returned from format_dataset()
+	labels : array
+		Array of all the "y variables" (devices), returned from format_dataset()
+	feature_list : list
+		List with all the column names, returned from format_dataset()
+	testsize : int
+		Fraction of data that will be used to test the model. Default is 0.25
+	randomstate : int
+		Random state. Default is 42
+
+    Returns
+    -------
+    train_features : list
+        List of fraction of "x variables" used to build/train the model
+	train_labels : list
+		List of the fraction of "y variables" used to build/train the model
+	test_features : list
+		List of fraction of "x variables" used to test the model
+	test_labels : list
+		List of fraction of "y variables" used to test the model
+	
+	
 	"""
 	train_features, test_features, train_labels, test_labels = train_test_split(features, labels, test_size = testsize, random_state = randomstate)
 	return train_features, train_labels, test_features, test_labels
 
 def create_random_forest(trees, randomstate, maxfeatures, train_features, train_labels):
 	""" Creates Random Forest Regression
+	
+	Parameters
+    ----------
+	trees : int
+		Number of trees in random forest. Default is 1000
+	randomstate : int
+		Random state. Default is 42
+	maxfeatures : int
+		The number of features to consider when looking for the best split. Set to 1/3 per literature recommendations.
+    train_features : list
+        List of fraction of "x variables" used to build/train the model, returned from split_train_test()
+	train_labels : list
+		List of the fraction of "y variables" used to build/train the model, returned from split_train_test()
+	
+	Returns
+    -------
+	rf : model
+		Random forest model built from train data
+	
 	"""
 	# Instantiate model with (default) 1000 decision trees, randomstate = 42, jobs = 2, maxfeatures = float(1/3)
 	rf = RandomForestRegressor(n_estimators = trees, random_state = randomstate, max_features = maxfeatures)
@@ -126,6 +192,20 @@ def create_random_forest(trees, randomstate, maxfeatures, train_features, train_
 
 def predict_test_data(rf, test_features):
 	""" Predicts outcomes from test data 
+	
+	Parameters
+    ----------
+	rf : model
+		Random forest model built from train data, returned from create_random_forest()
+	test_features : list
+		List of fraction of "x variables" used to test the model, returned from split_train_test()
+	
+	Returns
+    -------
+	predictions : list
+		List of predicted "y values" when using the test data (test_features) and the random forest model (rf)
+	
+	
 	"""
 	predictions = rf.predict(test_features)
 	return predictions
@@ -133,10 +213,26 @@ def predict_test_data(rf, test_features):
 def evaluate_fit(predictions, test_labels):
 	""" Evaluates how predicted outcomes and actual outcomes compare with
 	error (predicted-actual), accuracy, and r-squared values
+	
+	Parameters
+    ----------
+	predictions : list
+		List of predicted "y values" when using the test data (test_features) and the random forest model (rf), returned from predict_test_data()
+	test_labels : list
+		List of fraction of "y variables" used to test the model, returned from split_train_test()
+		
+	Returns
+    -------
+	errors : list
+		List of errors
+	accuracy : float
+		Percent accuracy of the model predicting the test dataset
+	rsquared : float
+		The r-squared value for test_labels versus predictions		
+	
 	"""
 	errors = abs(predictions - test_labels)
 	print('Mean Absolute Error:', round(np.mean(errors), 2), 'degrees.')
-	print('TEST LABELS = ', test_labels)
 	mape = 100 * (errors / test_labels)
 	accuracy = 100 - np.mean(mape)
 	print('Accuracy:', round(accuracy, 2), '%.')
@@ -145,6 +241,19 @@ def evaluate_fit(predictions, test_labels):
 	
 def list_top_features(rf, feature_list):	
 	""" Generates and prints list of top features influencing tech adoption
+	
+	Parameters
+    ----------
+	rf : model
+		Random forest model built from train data, returned from create_random_forest()
+	feature_list : list
+		List with all the column names, returned from format_dataset()
+	
+	Returns
+    -------
+	importances : array
+		List of the feature importances from 0 to 1 (least important to model to most important to model)
+	
 	"""
 	importances = list(rf.feature_importances_)
 	feature_importances = [(feature, round(importance, 2)) for feature, importance in zip(feature_list, importances)]
@@ -154,9 +263,25 @@ def list_top_features(rf, feature_list):
 
 def plot_top_features(importances, feature_list,c):
 	""" Plots Top Features in horizontal bar chart
+	
+	Parameters
+    ----------
+	importances : array
+		List of the feature importances from 0 to 1 (least important to model to most important to model), returned from list_top_features()
+	feature_list : list
+		List with all the column names, returned from format_dataset()
+	c : str
+		Color of bar chart
+	
+	Returns
+	-------
+	'Plot_Variable_Importances.png' : png
+		Horizontal bar chart of variable importances in descending order 
+		
+	
 	"""
 	x_values = list(range(len(importances)))
-	plt.figure(figsize = (20,15), dpi = 100)
+	plt.figure(figsize = (20,15), dpi = 300)
 	importances_sorted, feature_list_sorted = (list(t) for t in zip(*sorted(zip(importances, feature_list))))
 	plt.barh(x_values, importances_sorted, align = 'center', alpha = 0.8, color=c)
 	plt.yticks(x_values, feature_list_sorted, fontsize = '33'); plt.xticks(fontsize = '30')
@@ -165,8 +290,23 @@ def plot_top_features(importances, feature_list,c):
 
 def plot_predicted_actual(test_labels, predictions, rsquared):
 	""" Plots predicted versus actual with rsquared and fitted line
+	
+	Parameters
+    ----------
+	predictions : list
+		List of predicted "y values" when using the test data (test_features) and the random forest model (rf), returned from predict_test_data()
+	test_labels : list
+		List of fraction of "y variables" used to test the model, returned from split_train_test()
+	rsquared : float
+		The r-squared value for test_labels versus predictions, returned from evaluate_fit()
+		
+	Returns
+	-------
+	'Plot_Predicted_Actual.png' : png
+		Scatter plot of predicted devices and actual devices with rsquared value
+	
 	"""
-	plt.figure(dpi = 100)
+	plt.figure(dpi = 300)
 	plt.plot(test_labels, predictions, 'k*')
 	plt.plot([min(test_labels), max(test_labels)],[min(test_labels), max(test_labels)],'r-')
 	plt.xticks(fontsize = 15); plt.yticks(fontsize = 15)
@@ -178,6 +318,19 @@ def plot_predicted_actual(test_labels, predictions, rsquared):
 	
 def plot_tree(rf, feature_list):
 	""" Visualize one decision tree 
+	
+	Parameters
+    ----------
+	rf : model
+		Random forest model built from train data, returned from create_random_forest()
+	feature_list : list
+		List with all the column names, returned from format_dataset()
+	
+	Returns
+    -------
+	'Plot_tree.png' : png
+		Figure of randomly generate decision tree for illustrative purposes
+	
 	"""	
 	# Pull out one tree from the forest. Tree #5 randomly chosen
 	tree = rf.estimators_[5]
@@ -202,8 +355,8 @@ def main():
 	args = parser.parse_args()
 	
 	# input file
-	root = tk.Tk()
-	root.filename = tk.filedialog.askopenfilename(initialdir="C:\Documents", title="Select File",  filetype=(("csv", "*.csv"),("all files","*.*")))
+	root = Tk()
+	root.filename = filedialog.askopenfilename(initialdir="C:\Documents", title="Select File",  filetype=(("csv", "*.csv"),("all files","*.*")))
 	filename = root.filename
 	root.destroy()
 	
