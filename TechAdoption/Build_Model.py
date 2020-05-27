@@ -5,6 +5,7 @@
 # TO DO: modify code so it allows for people to answer "no, I don't have 'improved' device" and reasons why
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import export_graphviz
 from sklearn.metrics import r2_score
 import matplotlib.pyplot as plt
@@ -30,7 +31,7 @@ def format_magpi(file,num_devices,num_questions):
 
     Returns
     -------
-    dataframe
+    df_new : dataframe
         Formatted to have the first column list all of the devices used and their corresponding yes/no answer to each question
 		
 	"""		
@@ -74,33 +75,6 @@ def format_magpi(file,num_devices,num_questions):
 		for col in range(1,len(questions_list)+1):
 			df_new.iloc[row,col] = q_list[col-1+(row*12)]
 	return df_new
-	
-
-#def format_qualtrics(file, respondents):
-	""" Formats Qualtrics dataset to input into RFR 
-	"""
-	
-	'''df = pd.read_csv(file)
-	cols_to_drop = ['StartDate','EndDate','Status','Progress','Duration (in seconds)','Finished',
-	'RecordedDate','ResponseId','DistributionChannel','UserLanguage','Q1']
-	df = df.drop(cols_to_drop, axis=1) # drop columns not containing survey data
-	df.drop(df.index[[0,2]], axis = 0)
-	
-	dev_list = []
-	for i in range(2,2+respondents):
-		text = df.iloc[i,0]
-		head,sep,tail = text.partition(',')
-		dev_list.append(head)
-		dev_list.append(tail)
-		dev_list = list(filter(None, dev_list)) 
-	print(dev_list)
-	
-	df.to_csv('test_qualtrics.csv', index = False)
-
-
-input_file = r"G:\My Drive\Classes\ME 599 - Software Development\TechAdoption\TechAdoption\Qualtrics_Dummy_data.csv"
-num_respondents = 10
-format_qualtrics(input_file, num_respondents)'''
 	
 def format_dataset(data):		
 	""" Loads dataset, converts categorical data into numerical data, and splits into predictors and output 
@@ -186,7 +160,7 @@ def create_random_forest(trees, randomstate, maxfeatures, train_features, train_
 	
 	"""
 	# Instantiate model with (default) 1000 decision trees, randomstate = 42, jobs = 2, maxfeatures = float(1/3)
-	rf = RandomForestRegressor(n_estimators = trees, random_state = randomstate, max_features = maxfeatures)
+	rf = RandomForestClassifier(n_estimators = trees, random_state = randomstate, max_features = maxfeatures)
 	rf.fit(train_features, train_labels)
 	return rf
 
@@ -287,34 +261,6 @@ def plot_top_features(importances, feature_list,c):
 	plt.yticks(x_values, feature_list_sorted, fontsize = '33'); plt.xticks(fontsize = '30')
 	plt.xlabel('Importance', fontsize = '33'); plt.title('Variable Importances', fontsize = '35');
 	plt.savefig('Plot_Variable_Importances.png', bbox_inches='tight', dpi = 500)
-
-def plot_predicted_actual(test_labels, predictions, rsquared):
-	""" Plots predicted versus actual with rsquared and fitted line
-	
-	Parameters
-    ----------
-	predictions : list
-		List of predicted "y values" when using the test data (test_features) and the random forest model (rf), returned from predict_test_data()
-	test_labels : list
-		List of fraction of "y variables" used to test the model, returned from split_train_test()
-	rsquared : float
-		The r-squared value for test_labels versus predictions, returned from evaluate_fit()
-		
-	Returns
-	-------
-	'Plot_Predicted_Actual.png' : png
-		Scatter plot of predicted devices and actual devices with rsquared value
-	
-	"""
-	plt.figure(dpi = 300)
-	plt.plot(test_labels, predictions, 'k*')
-	plt.plot([min(test_labels), max(test_labels)],[min(test_labels), max(test_labels)],'r-')
-	plt.xticks(fontsize = 15); plt.yticks(fontsize = 15)
-	plt.title('Cooking Methods', fontsize = 25); plt.xlabel('Actual Values', fontsize = 20); plt.ylabel('Predicted Values', fontsize = 20)
-	x_loc = (max(test_labels) - 1)*0.75
-	y_loc = (min(predictions)+1)*0.75
-	plt.text(x_loc,y_loc, '$R^2$ ='+str(round(rsquared,3)), fontsize = 20) 
-	plt.savefig('Plot_Predicted_Actual.png', bbox_inches='tight', dpi = 500)
 	
 def plot_tree(rf, feature_list):
 	""" Visualize one decision tree 
@@ -361,7 +307,7 @@ def main():
 	root.destroy()
 	
 	# call functions
-	df_new = format_magpi(filename,args.num_devices[0],args.num_questions[0])
+	df_new, dev_list = format_magpi(filename,args.num_devices[0],args.num_questions[0])
 	features, labels, feature_list = format_dataset(df_new)
 	train_features, train_labels, test_features, test_labels = split_train_test(features, labels, args.testsize, args.randomstate)
 	rf = create_random_forest(args.trees, args.randomstate, maxfeatures, train_features, train_labels)
@@ -369,7 +315,6 @@ def main():
 	errors, accuracy, rsquared = evaluate_fit(predictions, test_labels)
 	importances = list_top_features(rf, feature_list)
 	plot_top_features(importances, feature_list,args.color)
-	plot_predicted_actual(test_labels, predictions, rsquared)
 	plot_tree(rf, feature_list)
 
 if __name__ == "__main__":
