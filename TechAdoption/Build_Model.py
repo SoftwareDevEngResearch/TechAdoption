@@ -7,7 +7,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import export_graphviz
-from sklearn.metrics import r2_score
 import matplotlib.pyplot as plt
 from tkinter import filedialog, Tk
 import pandas as pd
@@ -204,8 +203,6 @@ def evaluate_fit(predictions, test_labels):
 		List of errors
 	accuracy : float
 		Percent accuracy of the model predicting the test dataset
-	rsquared : float
-		The r-squared value for test_labels versus predictions		
 	
 	"""
 	errors = abs(predictions - test_labels)
@@ -213,8 +210,7 @@ def evaluate_fit(predictions, test_labels):
 	mape = 100 * (errors / test_labels)
 	accuracy = 100 - np.mean(mape)
 	print('Accuracy:', round(accuracy, 2), '%.')
-	rsquared = r2_score(test_labels, predictions)
-	return errors, accuracy, rsquared
+	return errors, accuracy
 	
 def list_top_features(rf, feature_list):	
 	""" Generates and prints list of top features influencing tech adoption
@@ -265,7 +261,7 @@ def plot_top_features(importances, feature_list,c):
 	plt.xlabel('Importance', fontsize = '33'); plt.title('Variable Importances', fontsize = '35');
 	plt.savefig('Plot_Variable_Importances.png', bbox_inches='tight', dpi = 500)
 
-def plot_predicted_actual(test_labels, predictions, rsquared, dev_list):
+def plot_predicted_actual(test_labels, predictions, accuracy, dev_list):
 	""" Plots predicted versus actual with rsquared and fitted line
 	
 	Parameters
@@ -293,6 +289,9 @@ def plot_predicted_actual(test_labels, predictions, rsquared, dev_list):
 	plt.title('Cooking Methods', fontsize = 25); plt.xlabel('Actual Values', fontsize = 20); plt.ylabel('Predicted Values', fontsize = 20)
 	x_loc = (max(test_labels) - 1)*0.75
 	y_loc = (min(predictions)+1)*0.75
+	s1 = 'Accuracy ='+str(round(accuracy,2))
+	s2 = s1 + '%'
+	plt.text(x_loc,y_loc, s2, fontsize = 15) 
 	plt.savefig('Plot_Predicted_Actual.png', bbox_inches='tight', dpi = 500)
 	
 def plot_tree(rf, feature_list):
@@ -345,10 +344,10 @@ def main():
 	train_features, train_labels, test_features, test_labels = split_train_test(features, labels, args.testsize, args.randomstate)
 	rf = create_random_forest(args.trees, args.randomstate, maxfeatures, train_features, train_labels)
 	predictions = predict_test_data(rf, test_features)
-	errors, accuracy, rsquared = evaluate_fit(predictions, test_labels)
+	errors, accuracy= evaluate_fit(predictions, test_labels)
 	importances = list_top_features(rf, feature_list)
 	plot_top_features(importances, feature_list,args.color)
-	plot_predicted_actual(test_labels, predictions, rsquared, dev_list)
+	plot_predicted_actual(test_labels, predictions, accuracy, dev_list)
 	plot_tree(rf, feature_list)
 
 if __name__ == "__main__":
