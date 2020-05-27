@@ -33,6 +33,8 @@ def format_magpi(file,num_devices,num_questions):
     -------
     df_new : dataframe
         Formatted to have the first column list all of the devices used and their corresponding yes/no answer to each question
+	dev_list : list
+		List of devices included in dataset
 		
 	"""		
 	df = pd.read_csv(file)
@@ -74,7 +76,8 @@ def format_magpi(file,num_devices,num_questions):
 	for row in range(len(dev_list)):
 		for col in range(1,len(questions_list)+1):
 			df_new.iloc[row,col] = q_list[col-1+(row*12)]
-	return df_new
+	return df_new, dev_list
+	
 	
 def format_dataset(data):		
 	""" Loads dataset, converts categorical data into numerical data, and splits into predictors and output 
@@ -261,6 +264,36 @@ def plot_top_features(importances, feature_list,c):
 	plt.yticks(x_values, feature_list_sorted, fontsize = '33'); plt.xticks(fontsize = '30')
 	plt.xlabel('Importance', fontsize = '33'); plt.title('Variable Importances', fontsize = '35');
 	plt.savefig('Plot_Variable_Importances.png', bbox_inches='tight', dpi = 500)
+
+def plot_predicted_actual(test_labels, predictions, rsquared, dev_list):
+	""" Plots predicted versus actual with rsquared and fitted line
+	
+	Parameters
+    ----------
+	predictions : list
+		List of predicted "y values" when using the test data (test_features) and the random forest model (rf), returned from predict_test_data()
+	test_labels : list
+		List of fraction of "y variables" used to test the model, returned from split_train_test()
+	rsquared : float
+		The r-squared value for test_labels versus predictions, returned from evaluate_fit()
+	dev_list : list
+		List of devices included in dataset
+		
+	Returns
+	-------
+	'Plot_Predicted_Actual.png' : png
+		Scatter plot of predicted devices and actual devices with rsquared value
+	
+	"""
+	unique_devices = list(set(dev_list))
+	plt.figure(dpi = 300)
+	plt.plot(test_labels, predictions, 'k*')
+	plt.plot([min(test_labels), max(test_labels)],[min(test_labels), max(test_labels)],'r-')
+	plt.xticks(range(1,len(unique_devices)+1), unique_devices, fontsize = 15, rotation = 90); plt.yticks(range(1,len(unique_devices)+1),unique_devices, fontsize = 15)
+	plt.title('Cooking Methods', fontsize = 25); plt.xlabel('Actual Values', fontsize = 20); plt.ylabel('Predicted Values', fontsize = 20)
+	x_loc = (max(test_labels) - 1)*0.75
+	y_loc = (min(predictions)+1)*0.75
+	plt.savefig('Plot_Predicted_Actual.png', bbox_inches='tight', dpi = 500)
 	
 def plot_tree(rf, feature_list):
 	""" Visualize one decision tree 
@@ -315,6 +348,7 @@ def main():
 	errors, accuracy, rsquared = evaluate_fit(predictions, test_labels)
 	importances = list_top_features(rf, feature_list)
 	plot_top_features(importances, feature_list,args.color)
+	plot_predicted_actual(test_labels, predictions, rsquared, dev_list)
 	plot_tree(rf, feature_list)
 
 if __name__ == "__main__":
