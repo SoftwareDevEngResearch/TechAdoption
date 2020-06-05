@@ -1,8 +1,7 @@
-""" Created by: Erin Peiffer, 12 May 2020
+""" Created by: Erin Peiffer, June 2020
 
 	Code to identify most relevant factors in predicting adoption using decision trees
 """
-# TO DO: modify code so it allows for people to answer "no, I don't have 'improved' device" and reasons why
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.ensemble import RandomForestClassifier
@@ -14,9 +13,10 @@ import numpy as np
 import argparse
 import pydot
 import csv
+import sys
 
 
-def format_magpi(file,num_devices,num_questions):
+def format_magpi(df,num_devices,num_questions):
 	""" Formats Magpi dataset to input into RFR 
 	
 	Parameters
@@ -36,7 +36,6 @@ def format_magpi(file,num_devices,num_questions):
 		List of devices included in dataset
 		
 	"""		
-	df = pd.read_csv(file)
 	cols_to_drop = ['Created By','Last Submitter','Record Uuid','Start Record Date','End Record Date','Last Submission Date',
 	'gps_stamp_latitude','gps_stamp_longitude','gps_stamp_accuracy']
 	df = df.drop(cols_to_drop,axis=1) # drop columns not containing survey data
@@ -61,7 +60,7 @@ def format_magpi(file,num_devices,num_questions):
 	dev_list = []	
 	q_list = []
 	df_devices = df.iloc[:,0:num_devices] # dataframe with just cooking_devices and yes/no
-	for row in range(14):
+	for row in range(df.shape[0]):
 		for col in range(num_devices):
 			if df_devices.iloc[row, col] == 'Yes':
 				dev_list.append(devices[col])
@@ -75,8 +74,7 @@ def format_magpi(file,num_devices,num_questions):
 	for row in range(len(dev_list)):
 		for col in range(1,len(questions_list)+1):
 			df_new.iloc[row,col] = q_list[col-1+(row*12)]
-	return df_new, dev_list
-	
+	return df_new, dev_list	
 	
 def format_dataset(data):		
 	""" Loads dataset, converts categorical data into numerical data, and splits into predictors and output 
@@ -125,16 +123,15 @@ def split_train_test(features, labels, testsize, randomstate):
 
     Returns
     -------
-    train_features : list
-        List of fraction of "x variables" used to build/train the model
-	train_labels : list
-		List of the fraction of "y variables" used to build/train the model
-	test_features : list
-		List of fraction of "x variables" used to test the model
-	test_labels : list
-		List of fraction of "y variables" used to test the model
-	
-	
+    train_features : numpy array
+        Array  of fraction of "x variables" used to build/train the model
+	train_labels : numpy array
+		Array  of the fraction of "y variables" used to build/train the model
+	test_features : numpy array
+		Array  of fraction of "x variables" used to test the model
+	test_labels : numpy array
+		Array  of fraction of "y variables" used to test the model
+		
 	"""
 	train_features, test_features, train_labels, test_labels = train_test_split(features, labels, test_size = testsize, random_state = randomstate)
 	return train_features, train_labels, test_features, test_labels
@@ -150,10 +147,10 @@ def create_random_forest(trees, randomstate, maxfeatures, train_features, train_
 		Random state. Default is 42
 	maxfeatures : int
 		The number of features to consider when looking for the best split. Set to 1/3 per literature recommendations.
-    train_features : list
-        List of fraction of "x variables" used to build/train the model, returned from split_train_test()
-	train_labels : list
-		List of the fraction of "y variables" used to build/train the model, returned from split_train_test()
+    train_features : numpy array
+        Array of fraction of "x variables" used to build/train the model, returned from split_train_test()
+	train_labels : numpy array
+		Array  of the fraction of "y variables" used to build/train the model, returned from split_train_test()
 	
 	Returns
     -------
@@ -173,14 +170,13 @@ def predict_test_data(rf, test_features):
     ----------
 	rf : model
 		Random forest model built from train data, returned from create_random_forest()
-	test_features : list
+	test_features : numpy array
 		List of fraction of "x variables" used to test the model, returned from split_train_test()
 	
 	Returns
     -------
-	predictions : list
-		List of predicted "y values" when using the test data (test_features) and the random forest model (rf)
-	
+	predictions : numpy array
+		List of predicted "y values" when using the test data (test_features) and the random forest model (rf)	
 	
 	"""
 	predictions = rf.predict(test_features)
@@ -192,9 +188,9 @@ def evaluate_fit(predictions, test_labels):
 	
 	Parameters
     ----------
-	predictions : list
+	predictions : numpy array
 		List of predicted "y values" when using the test data (test_features) and the random forest model (rf), returned from predict_test_data()
-	test_labels : list
+	test_labels : numpy array
 		List of fraction of "y variables" used to test the model, returned from split_train_test()
 		
 	Returns
@@ -206,7 +202,6 @@ def evaluate_fit(predictions, test_labels):
 	
 	"""
 	errors = abs(predictions - test_labels)
-	print('Mean Absolute Error:', round(np.mean(errors), 2), 'degrees.')
 	mape = 100 * (errors / test_labels)
 	accuracy = 100 - np.mean(mape)
 	print('Accuracy:', round(accuracy, 2), '%.')
@@ -249,8 +244,7 @@ def plot_top_features(importances, feature_list,c):
 	Returns
 	-------
 	'Plot_Variable_Importances.png' : png
-		Horizontal bar chart of variable importances in descending order 
-		
+		Horizontal bar chart of variable importances in descending order 		
 	
 	"""
 	x_values = list(range(len(importances)))
@@ -323,8 +317,16 @@ def main():
 	
 	# user inputs
 	parser = argparse.ArgumentParser() 
-	parser.add_argument('-nd', action='store', dest='num_devices', nargs='*', type=int, required=True, help='number of devices included in dataset')
-	parser.add_argument('-nq', action='store', dest='num_questions', nargs='*', type=int, required=True, help='number of questions per device in dataset')
+	try: 
+		parser.add_argument('-nd', action='store', dest='num_devices', nargs='*', type=int, required=True, help='number of options/devices included in dataset')
+	except IndexError:
+		print('Number of options/devices (-nd) must be included on command line')
+		sys.exit(1)  # abort execution
+	try:
+		parser.add_argument('-nq', action='store', dest='num_questions', nargs='*', type=int, required=True, help='number of questions per device in dataset')
+	except IndexError:
+		print('Number of questions (-nq) must be included on command line')
+		sys.exit(1)  # abort execution
 	parser.add_argument('-ts', action='store', dest='testsize', nargs='*', type=int, default=0.25, 
 	help='proportion of the dataset used to train (build) the model, and proportion to test model? Default = 0.25 test, 0.75 train')
 	parser.add_argument('-t', action='store', dest='trees', nargs='*', type=int, default=1000, help='number of trees in random forest regression. Default = 1000')
@@ -336,10 +338,11 @@ def main():
 	root = Tk()
 	root.filename = filedialog.askopenfilename(initialdir="C:\Documents", title="Select File",  filetype=(("csv", "*.csv"),("all files","*.*")))
 	filename = root.filename
-	root.destroy()
+	root.destroy()	
+	df = pd.read_csv(filename)
 	
 	# call functions
-	df_new, dev_list = format_magpi(filename,args.num_devices[0],args.num_questions[0])
+	df_new, dev_list = format_magpi(df,args.num_devices[0],args.num_questions[0])
 	features, labels, feature_list = format_dataset(df_new)
 	train_features, train_labels, test_features, test_labels = split_train_test(features, labels, args.testsize, args.randomstate)
 	rf = create_random_forest(args.trees, args.randomstate, maxfeatures, train_features, train_labels)
