@@ -13,20 +13,21 @@ except ImportError:
 
 here = path.abspath(path.dirname(__file__))
 
-with open(path.join(here, 'TechAdoption', '_version.py')) as version_file:
-    exec(version_file.read())
+#with open(path.join(here, 'TechAdoption', '__version.py')) as version_file:
+ #   exec(version_file.read())
 
-with open(path.join(here, 'README.md')) as readme_file:
-    readme = readme_file.read()
+with open("README.md", "r") as fh:
+    long_description = fh.read()
 
-#with open(path.join(here, 'CHANGELOG.md')) as changelog_file:
-#    changelog = changelog_file.read()
 
-desc = readme + '\n\n' + changelog
+with open(path.join(here, 'CHANGELOG.md')) as changelog_file:
+    changelog = changelog_file.read()
+
+desc = long_description + '\n\n' + changelog
 try:
     import pypandoc
     long_description = pypandoc.convert_text(desc, 'rst', format='md')
-    with open(path.join(here, 'README.rst'), 'w') as rst_readme:
+    with open(path.join(here, 'README.md'), 'w') as rst_readme:
         rst_readme.write(long_description)
 except (ImportError, OSError, IOError):
     long_description = desc
@@ -48,21 +49,20 @@ setup(
     name='TechAdoption',
     version='0.1.0',
     description='Identify top factors that predict rates of adoption',
-	long_description=open('README.txt').read()
+	long_description=long_description,
+    long_description_content_type="text/markdown",
     author='Erin Peiffer',
-    author_email='peiffer.eringmail.com',
+    author_email='peiffer.erin@gmail.com',
     url='https://github.com/Epeiffer1',
     classifiers=[
-        'License :: MIT License',
-        'Intended Audience :: Developers',
-        'Intended Audience :: Science/Research/Development Practitioners',
+        'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
         'Programming Language :: Python :: 3',
     ],
     license='MIT-Clause',
     python_requires='>=3',
     zip_safe=False,
-    packages=['TechAdoption', 'TechAdoption.tests'],
+    packages=['TechAdoption', 'TechAdoption.Test'],
     include_package_data=True,
 
     # or you can specify explicitly:
