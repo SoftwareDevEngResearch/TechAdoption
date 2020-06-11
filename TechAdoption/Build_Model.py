@@ -3,7 +3,6 @@
 	Code to identify most relevant factors in predicting adoption using decision trees
 """
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestRegressor
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import export_graphviz
 import matplotlib.pyplot as plt
@@ -313,7 +312,6 @@ def plot_tree(rf, feature_list):
 def main():
 
 	# constants 
-	maxfeatures = float(1/3);
 	
 	# user inputs
 	parser = argparse.ArgumentParser() 
@@ -334,6 +332,7 @@ def main():
 	parser.add_argument('-c', action='store', dest='color', nargs='*', type=str, default='orchid', help='choose bar colors. Default = orchid. Documentation: https://matplotlib.org/2.0.2/api/colors_api.html')
 	args = parser.parse_args()
 	
+	maxfeatures = int((args.num_devices[0])**(1/2))
 	# input file
 	root = Tk()
 	root.filename = filedialog.askopenfilename(initialdir="C:\Documents", title="Select File",  filetype=(("csv", "*.csv"),("all files","*.*")))
