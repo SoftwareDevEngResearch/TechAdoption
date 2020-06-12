@@ -279,7 +279,7 @@ def plot_predicted_actual(test_labels, predictions, accuracy, dev_list):
 	plt.plot(test_labels, predictions, 'k*')
 	plt.plot([min(test_labels), max(test_labels)],[min(test_labels), max(test_labels)],'r-')
 	plt.xticks(range(1,len(unique_devices)+1), unique_devices, fontsize = 15, rotation = 90); plt.yticks(range(1,len(unique_devices)+1),unique_devices, fontsize = 15)
-	plt.title('Cooking Methods', fontsize = 25); plt.xlabel('Actual Values', fontsize = 20); plt.ylabel('Predicted Values', fontsize = 20)
+	plt.xlabel('Actual Values', fontsize = 20); plt.ylabel('Predicted Values', fontsize = 20)
 	x_loc = (max(test_labels) - 1)*0.75
 	y_loc = (min(predictions)+1)*0.75
 	s1 = 'Accuracy ='+str(round(accuracy,2))
